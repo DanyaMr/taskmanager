@@ -196,8 +196,8 @@ class Planning:
         
         for i, task in enumerate(sorted_tasks):
             for j, emp in enumerate(self.employees):
-                # Проверяем возможность выполнения
-                can_perform = emp.type == "digital" or emp.can_perform_task(task)
+                # Проверяем возможность выполнения для всех сотрудников одинаково
+                can_perform = emp.can_perform_task(task)
                 feasibility_matrix[i][j] = can_perform
                 
                 if can_perform:
@@ -297,6 +297,13 @@ class Planning:
         bounds.append((0, None))  # makespan >= 0
         
         try:
+            # Добавляем небольшую регуляризацию для равномерного распределения
+            epsilon = 0.001
+            for j in range(n_employees):
+                for i in range(n_tasks):
+                    idx = i * n_employees + j
+                    c[idx] = epsilon  # Маленький штраф за каждое назначение
+            
             res = linprog(
                 c=c,
                 A_eq=np.array(A_eq) if A_eq else None,
@@ -313,13 +320,16 @@ class Planning:
                 assignments = []
                 x = res.x
                 
+                # Считаем количество задач на каждого сотрудника
+                task_counts = [0] * n_employees
                 for i in range(n_tasks):
                     for j in range(n_employees):
                         idx = i * n_employees + j
-                        if x[idx] > 0.5:  # Порог для бинарного решения
+                        if x[idx] > 0.5:
                             assignments.append((i, j))
+                            task_counts[j] += 1
                 
-                return assignments, f"Makespan: {x[-1]:.1f} hours"
+                return assignments, f"Makespan: {x[-1]:.1f} hours, Distribution: {task_counts}"
             else:
                 return None, f"Optimization failed: {res.message}"
                 
@@ -373,15 +383,38 @@ class Planning:
         feasibility_matrix = np.zeros((n_tasks, n_employees), dtype=bool)
         
         for i, task in enumerate(sorted_tasks):
+            print(f"  Task {i}: {task.title}, required_skills: {task.required_skills}")
             for j, emp in enumerate(self.employees):
-                can_perform = emp.type == "digital" or emp.can_perform_task(task)
+                # Проверяем возможность выполнения для всех сотрудников одинаково
+                can_perform = emp.can_perform_task(task)
                 feasibility_matrix[i][j] = can_perform
                 
                 if can_perform:
                     forecast = self.forecasting_service.estimate_task(task, emp.type)
-                    time_matrix[i][j] = forecast.predicted_effort
+                    base_effort = forecast.predicted_effort
+                    
+                    # Вычисляем коэффициент навыка: чем выше навык, тем меньше время
+                    # Находим максимальный уровень навыка среди требуемых
+                    max_skill_level = 1
+                    for skill_name, required_level in task.required_skills.items():
+                        emp_skill_level = emp.get_skill_level(skill_name)
+                        if emp_skill_level > max_skill_level:
+                            max_skill_level = emp_skill_level
+                    
+                    # skill_factor > 1 означает, что сотрудник более квалифицирован
+                    # Уменьшаем время выполнения пропорционально
+                    skill_factor = max_skill_level / max(task.required_skills.values()) if task.required_skills else 1.0
+                    skill_factor = max(0.5, min(2.0, skill_factor))  # Ограничиваем от 0.5 до 2.0
+                    
+                    # Корректируем время: более высокий навык = меньше время
+                    adjusted_effort = base_effort / skill_factor
+                    time_matrix[i][j] = adjusted_effort
+                    print(f"    Emp {j} ({emp.name}, {emp.type}): can_perform={can_perform}, skill_factor={skill_factor:.2f}, adjusted_effort={adjusted_effort:.1f}")
                 else:
                     time_matrix[i][j] = 1e6  # Большое число для невозможных
+        
+        print(f"  Feasibility matrix: {feasibility_matrix.tolist()}")
+        print(f"  Time matrix: {time_matrix.tolist()}")
         
         # Capacity
         capacities = np.array([

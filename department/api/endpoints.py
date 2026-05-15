@@ -300,6 +300,23 @@ async def optimize_task_assignment(
             emp.current_load = e.current_load or 0.0
             emp.max_capacity = e.max_capacity or 40.0
             emp.performance_score = e.performance_score or 1.0
+            
+            # 🔧 Загружаем навыки из БД
+            for skill_db in e.skills:
+                # Создаём SkillDetail для SkillLevel
+                skill_detail = SkillDetail(
+                    id=skill_db.id,
+                    name=skill_db.name,
+                    description=skill_db.description,
+                    category=skill_db.category,
+                    is_digital=skill_db.is_digital
+                )
+                skill_level = SkillLevel(
+                    skill=skill_detail,
+                    level=1
+                )
+                emp.skills[skill_db.name] = skill_level
+            
             employees.append(emp)
         
         # Запускаем оптимизацию
@@ -885,6 +902,15 @@ async def create_employee(employee: EmployeeCreate, db: DatabaseService = Depend
             config={}
         )
         session.add(emp_db)
+        
+        # 🔧 Привязываем навыки из employee.skill_ids
+        if employee.skill_ids:
+            for skill_id in employee.skill_ids:
+                skill = session.query(SkillDB).get(skill_id)
+                if skill:
+                    emp_db.skills.append(skill)
+                    print(f"✅ Added skill {skill.name} to employee {employee.name}")
+        
         session.commit()
 
         return EmployeeResponse(
@@ -894,8 +920,8 @@ async def create_employee(employee: EmployeeCreate, db: DatabaseService = Depend
             current_load=0.0,
             max_capacity=employee.max_capacity,
             performance_score=employee.performance_score or 1.0,
-            skills_count=0,
-            skills=[],
+            skills_count=len(emp_db.skills),
+            skills=[{"id": s.id, "name": s.name, "category": s.category} for s in emp_db.skills],
             is_overloaded=False
         )
     except HTTPException:
@@ -1215,17 +1241,23 @@ async def redistribute_tasks(
     db: DatabaseService = Depends(get_db)
 ):
     """Перераспределить задачи оптимально через линейное программирование"""
+    import traceback as tb
     session = db.Session()
     try:
+        print("=== REDISTRIBUTE START ===")
+        
         # Получаем нераспределенные задачи
         tasks_db = session.query(TaskDB).filter(
             TaskDB.assigned_id.is_(None),
             TaskDB.status.in_(["backlog", "planned"])
         ).all()
+        print(f"=== Found {len(tasks_db)} unassigned tasks")
         
         employees_db = session.query(EmployeeDB).all()
+        print(f"=== Found {len(employees_db)} employees")
         
         if not tasks_db:
+            print("=== No tasks to redistribute")
             return {
                 "success": True,
                 "message": "Нет нераспределенных задач",
@@ -1234,6 +1266,7 @@ async def redistribute_tasks(
             }
         
         if not employees_db:
+            print("=== No employees available")
             raise HTTPException(status_code=400, detail="Нет сотрудников")
         
         # Конвертируем в бизнес-модели
@@ -1252,6 +1285,7 @@ async def redistribute_tasks(
                 dependencies=t.dependencies or []
             )
             tasks.append(task)
+        print(f"=== Converted {len(tasks)} tasks")
         
         employees = []
         for e in employees_db:
@@ -1262,12 +1296,35 @@ async def redistribute_tasks(
             emp.current_load = e.current_load or 0.0
             emp.max_capacity = e.max_capacity or 40.0
             emp.performance_score = e.performance_score or 1.0
+            
+            # 🔧 Загружаем навыки из БД
+            skill_names = [s.name for s in e.skills]
+            print(f"=== Employee {e.name} ({e.type}) has {len(e.skills)} skills: {skill_names}")
+            for skill_db in e.skills:
+                # Создаём SkillDetail для SkillLevel
+                skill_detail = SkillDetail(
+                    id=skill_db.id,
+                    name=skill_db.name,
+                    description=skill_db.description,
+                    category=skill_db.category,
+                    is_digital=skill_db.is_digital
+                )
+                skill_level = SkillLevel(
+                    skill=skill_detail,
+                    level=1
+                )
+                emp.skills[skill_db.name] = skill_level
+                print(f"    Added skill: {skill_db.name} -> {skill_level.level}")
+            
             employees.append(emp)
+        print(f"=== Converted {len(employees)} employees")
         
         # Запускаем оптимизацию
+        print("=== Starting Planning optimization...")
         from department.services.planning import Planning
         planning = Planning(employees)
         result = planning.optimize_assignment(tasks, days=days)
+        print(f"=== Optimization result: success={result.success}, assignments={len(result.assignments)}")
         
         # Сохраняем назначения в БД
         saved_count = 0
@@ -1280,17 +1337,25 @@ async def redistribute_tasks(
                 saved_count += 1
         
         session.commit()
+        print(f"=== SUCCESS: Saved {saved_count} assignments")
         
         return {
             "success": True,
             "saved_assignments": saved_count,
             "total_time_hours": result.total_time,
+            "message": result.message,
             "assignments": result.assignments
         }
     except HTTPException:
+        print("=== HTTPException raised")
         raise
     except Exception as e:
         session.rollback()
+        print("=== EXCEPTION occurred!")
+        print(f"=== Error: {type(e).__name__}: {e}")
+        print("=== Traceback:")
+        print(tb.format_exc())
         raise HTTPException(status_code=500, detail=f"Ошибка перераспределения: {str(e)}")
     finally:
         session.close()
+        print("=== Session closed")

@@ -157,11 +157,8 @@ class ForecastingService:
             if employee_type and emp.type != employee_type:
                 continue
             
-            # Цифровые сотрудники могут выполнять любые задачи
-            if emp.type == "digital":
-                suitable.append(emp)
-            # Люди проверяются по навыкам
-            elif emp.can_perform_task(task):
+            # Проверяем возможность выполнения для всех сотрудников одинаково
+            if emp.can_perform_task(task):
                 suitable.append(emp)
         
         return suitable

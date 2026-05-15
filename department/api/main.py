@@ -56,19 +56,28 @@ async def dashboard_page(request: Request):
         ]
 
         return templates.TemplateResponse(
-            "dashboard.html",
-            {"request": request, "metrics": metrics}
+            request=request,
+            name="dashboard.html",
+            context={"metrics": metrics}
         )
     finally:
         session.close()
 
 @app.get("/employees", response_class=HTMLResponse)
 async def employees_page(request: Request):
-    return templates.TemplateResponse("employees.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="employees.html",
+        context={}
+    )
 
 @app.get("/tasks", response_class=HTMLResponse)
 async def tasks_page(request: Request):
-    return templates.TemplateResponse("tasks.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="tasks.html",
+        context={}
+    )
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8339, reload=True)

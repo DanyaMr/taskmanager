@@ -20,15 +20,26 @@ class HumanEmployee(Employee):
         )
 
     def can_perform_task(self, task: Task) -> bool:
-        """Проверить возможность выполнения задачи"""
+        """Проверить возможность выполнения задачи (проверка наличия навыка, любой уровень > 0)"""
         for skill_name, required_level in task.required_skills.items():
-            if self.get_skill_level(skill_name) < required_level:
+            skill_level = self.get_skill_level(skill_name)
+            # Проверяем наличие навыка (уровень > 0)
+            if skill_level < 1:
                 return False
         return True
 
     def has_skill(self, skill_name: str, required_level: int = 1) -> bool:
-        """Проверить наличие навыка"""
+        """Проверить наличие навыка (регистронезависимо)"""
         return self.get_skill_level(skill_name) >= required_level
+    
+    def get_skill_level(self, skill_name: str) -> int:
+        """Получить уровень навыка (регистронезависимо)"""
+        # Нормализуем имя навыка для сравнения
+        skill_name_lower = skill_name.lower()
+        for name, skill_level in self.skills.items():
+            if name.lower() == skill_name_lower:
+                return skill_level.level
+        return 0
 
 
 class DigitalEmployee(Employee):
@@ -44,17 +55,32 @@ class DigitalEmployee(Employee):
         )
 
     def can_perform_task(self, task: Task) -> bool:
-        """Цифровой сотрудник проверяет по capabilities"""
-        # Проверка навыков
+        """Цифровой сотрудник проверяет наличие навыка (любой уровень > 0)"""
+        # Если есть хотя бы один требуемый навык - цифровой сотрудник может выполнить задачу
         for skill_name, required_level in task.required_skills.items():
-            if self.get_skill_level(skill_name) < required_level:
-                return False
-
-        # Проверка по шаблонам возможностей
+            skill_level = self.get_skill_level(skill_name)
+            # Проверяем наличие навыка (уровень > 0)
+            if skill_level >= 1:
+                return True
+        
+        # Если навыков нет в задаче, проверяем capabilities
         task_keywords = f"{task.title} {task.description}".lower()
         capabilities = self.config.get("capabilities", [])
         return any(cap in task_keywords for cap in capabilities) or "all" in capabilities
 
     def has_skill(self, skill_name: str, required_level: int = 1) -> bool:
-        """Проверить наличие цифрового навыка"""
-        return skill_name in self.skills or "all" in self.config.get("capabilities", [])
+        """Проверить наличие цифрового навыка (регистронезависимо)"""
+        skill_name_lower = skill_name.lower()
+        for name in self.skills.keys():
+            if name.lower() == skill_name_lower:
+                return True
+        return "all" in self.config.get("capabilities", [])
+    
+    def get_skill_level(self, skill_name: str) -> int:
+        """Получить уровень навыка (регистронезависимо)"""
+        # Нормализуем имя навыка для сравнения
+        skill_name_lower = skill_name.lower()
+        for name, skill_level in self.skills.items():
+            if name.lower() == skill_name_lower:
+                return skill_level.level
+        return 0
