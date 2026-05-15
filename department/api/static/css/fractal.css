@@ -1,0 +1,73 @@
+/* Кастомные стили для цифрового двойника */
+:root {
+    --fractal-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --glass-blur: blur(10px);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fractal-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Уведомления (toasts) без Bootstrap */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 1rem 1.5rem;
+    max-width: 400px;
+    z-index: 1000;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Фрактальная визуализация */
+.fractal-tree {
+    border-left: 3px solid var(--primary-color);
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+}
+
+.fractal-tree-node {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: rgba(255,255,255,0.5);
+    border-radius: 8px;
+}
+
+/* KPI виджеты */
+.kpi-widget {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+}
+
+.kpi-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Адаптивная таблица */
+@media (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}

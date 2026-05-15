@@ -1,0 +1,402 @@
+/* ============================================ */
+/* === Улучшенные стили для страницы сотрудников === */
+/* ============================================ */
+
+/* Переменные цветовой схемы */
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --digital-gradient: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+    --human-gradient: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+    --danger-gradient: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    --success-gradient: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    --warning-gradient: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+
+    --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.08);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.12);
+    --shadow-heavy: 0 8px 30px rgba(0, 0, 0, 0.16);
+
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --border-radius: 12px;
+    --border-radius-sm: 6px;
+}
+
+/* Общие стили */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f9fa;
+    line-height: 1.6;
+}
+
+/* Форма создания сотрудника */
+.form-card {
+    background: white;
+    padding: 25px;
+    border: none;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    transition: var(--transition);
+}
+
+.form-card:hover {
+    box-shadow: var(--shadow-medium);
+}
+
+.form-card h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px 16px;
+    margin: 8px 0;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    transition: var(--transition);
+    background: #fff;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-light);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Кнопка удаления */
+.delete-btn {
+    background: var(--danger-gradient);
+    color: white;
+}
+
+.delete-btn:hover {
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+}
+
+.delete-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Основная таблица сотрудников */
+table {
+    border-collapse: separate;
+    width: 100%;
+    margin: 20px 0;
+    background: white;
+    box-shadow: var(--shadow-medium);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border-spacing: 0;
+}
+
+thead {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+th {
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: var(--transition);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Эффект при наведении на строку */
+tbody tr:hover td {
+    background: #f8f9ff;
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Стили для digital сотрудников */
+tr.digital {
+    background: linear-gradient(to right, rgba(33, 150, 243, 0.05) 0%, transparent 100%);
+    border-left: 4px solid #2196f3;
+}
+
+tr.digital:hover td {
+    background: rgba(33, 150, 243, 0.1);
+}
+
+tr.digital .skill-tag {
+    background: var(--digital-gradient);
+}
+
+/* Стили для human сотрудников */
+tr.human {
+    background: linear-gradient(to right, rgba(255, 152, 0, 0.05) 0%, transparent 100%);
+    border-left: 4px solid #ff9800;
+}
+
+tr.human:hover td {
+    background: rgba(255, 152, 0, 0.1);
+}
+
+tr.human .skill-tag {
+    background: var(--human-gradient);
+}
+
+/* Теги навыков */
+.skill-tag {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin: 3px;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    box-shadow: var(--shadow-light);
+    transition: var(--transition);
+}
+
+.skill-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Прогресс-бар загрузки */
+.load-bar {
+    background: #e0e0e0;
+    height: 24px;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.load-fill {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.5s ease-in-out;
+    position: relative;
+}
+
+.load-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0) 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Цвета прогресс-бара в зависимости от загрузки */
+.load-fill.low {
+    background: var(--success-gradient);
+    width: 0-50%;
+}
+
+.load-fill.medium {
+    background: var(--warning-gradient);
+    width: 50-80%;
+}
+
+.load-fill.high {
+    background: var(--danger-gradient);
+    width: 80-100%;
+}
+
+.load-bar span {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Кнопка сворачивания задач */
+.collapse-btn {
+    cursor: pointer;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    background: rgba(102, 126, 234, 0.1);
+    transition: var(--transition);
+    display: inline-block;
+}
+
+.collapse-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    color: #5a67d8;
+}
+
+.collapse-btn::before {
+    content: '▼';
+    margin-right: 5px;
+    transition: var(--transition);
+}
+
+.collapse-btn.collapsed::before {
+    transform: rotate(-90deg);
+}
+
+/* Скрытый блок с задачами */
+[id^="tasks-"] {
+    background: #f8f9fa;
+    border-radius: var(--border-radius-sm);
+    padding: 10px;
+    margin-top: 10px;
+    border-left: 3px solid #667eea;
+    max-height: 150px;
+    overflow-y: auto;
+    transition: var(--transition);
+}
+
+[id^="tasks-"] > div {
+    padding: 4px 0;
+    border-bottom: 1px dashed #e0e0e0;
+    font-size: 13px;
+}
+
+[id^="tasks-"] > div:last-child {
+    border-bottom: none;
+}
+
+/* Адаптивный дизайн */
+@media (max-width: 768px) {
+    table {
+        font-size: 13px;
+    }
+
+    th, td {
+        padding: 10px 6px;
+    }
+
+    .form-card {
+        padding: 15px;
+    }
+
+    input, select {
+        padding: 10px 12px;
+    }
+
+    /* Скрываем несущественные колонки на маленьких экранах */
+    th:nth-child(5), td:nth-child(5),
+    th:nth-child(6), td:nth-child(6) {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    table {
+        font-size: 12px;
+    }
+
+    th:nth-child(3), td:nth-child(3),
+    th:nth-child(7), td:nth-child(7) {
+        display: none;
+    }
+
+    .skill-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+}
+
+/* Анимация появления строк */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+tbody tr {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Стилизация скроллбара (Webkit) */
+[id^="tasks-"]::-webkit-scrollbar {
+    width: 6px;
+}
+
+[id^="tasks-"]::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+[id^="tasks-"]::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 10px;
+}
+
+/* Сообщения об ошибках */
+.error-message {
+    background: var(--danger-gradient);
+    color: white;
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+    margin: 10px 0;
+    font-weight: 600;
+}
+
+.success-message {
+    background: var(--success-gradient);
+    color: white;
+    padding: 12px;
+    border-radius: var(--border-radius-sm);
+    margin: 10px 0;
+    font-weight: 600;
+}

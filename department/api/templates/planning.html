@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Процесс Планирования</title>
+    <script>
+        // Мини-замена Axios на Fetch
+        window.axios = {
+            get: async (url) => {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return { data: await response.json() };
+            },
+
+            post: async (url, data) => {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return { data: await response.json() };
+            },
+
+            put: async (url, data, config) => {
+                const options = {
+                    method: 'PUT',
+                    headers: {}
+                };
+                if (data) {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(data);
+                }
+                const response = await fetch(url + (config?.params ? '?' + new URLSearchParams(config.params) : ''), options);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return { data: await response.json() };
+            },
+
+            delete: async (url) => {
+                const response = await fetch(url, { method: 'DELETE' });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return { data: await response.json() };
+            }
+        };
+    </script>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 20px; }
+        .step { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .step.completed { background: #d4edda; border-color: #28a745; }
+        .step.active { background: #fff3cd; border-color: #ffc107; }
+        .step.pending { background: #f8f9fa; }
+        #gantt-chart { overflow-x: auto; }
+        .gantt-bar { background: #2196f3; height: 20px; margin: 2px 0; border-radius: 3px; color: white; padding-left: 5px; font-size: 12px; }
+        .gantt-row { display: flex; align-items: center; }
+        .gantt-label { width: 150px; font-size: 14px; }
+        .plan-results { margin-top: 20px; }
+        .employee-section { margin: 15px 0; padding: 15px; border-radius: 5px; }
+        .digital-employee { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        .human-employee { background: #f9f9f9; border-left: 4px solid #4caf50; }
+        .task-list { margin-left: 20px; margin-top: 10px; }
+        .task-item { margin: 5px 0; padding: 8px; background: #ffffff; border-radius: 3px; }
+    </style>
+</head>
+<body>
+<h1>📅 Процесс Планирования</h1>
+<div class="nav">
+    <a href="/">Главная</a>
+    <a href="/employees">Сотрудники</a>
+    <a href="/tasks">Задачи</a>
+    <a href="/planning">Планирование</a>
+</div>
+
+<button onclick="runFullPlanning()" style="padding: 10px 20px; font-size: 16px;">
+    🚀 Запустить полный цикл планирования
+</button>
+
+<div id="planning-steps"></div>
+<div id="gantt-chart"></div>
+<div id="planning-result" style="margin-top: 20px; min-height: 100px;"></div>
+<script>
+    let currentSessionId = null;
+
+    async function runFullPlanning() {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = 'Планирование...';
+
+        const resultDiv = document.getElementById('planning-result');
+        if (resultDiv) {
+            resultDiv.innerHTML = '<div style="color: blue;">⏳ Выполняется планирование...</div>';
+        }
+
+        try {
+            const response = await axios.post('/api/planning/run');
+            const data = response.data;
+
+            // Проверяем, что план не пустой
+            if (!data.detailed_plan || Object.keys(data.detailed_plan).length === 0) {
+                resultDiv.innerHTML = '<div style="color: orange;">⚠️ Нет задач для планирования</div>';
+                return;
+            }
+
+            // Создаем HTML с детализацией
+            let html = `
+            <div class="plan-results">
+                <h3>📊 Результаты планирования</h3>
+                <p><strong>Всего назначений:</strong> ${Object.keys(data.detailed_plan).length}</p>
+        `;
+
+            for (const [empId, info] of Object.entries(data.detailed_plan)) {
+                const isDigital = info.type === 'digital';
+                const empIcon = isDigital ? '🤖' : '👤';
+                const empClass = isDigital ? 'digital-employee' : 'human-employee';
+
+                html += `
+                <div class="employee-section ${empClass}" style="margin: 15px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                    <h4>${empIcon} ${info.name} <small>(${info.type})</small> - ${info.task_count} задач(и)</h4>
+                    <div class="task-list" style="margin-left: 20px;">
+            `;
+
+                if (info.tasks && info.tasks.length > 0) {
+                    info.tasks.forEach(task => {
+                        html += `
+                        <div class="task-item" style="margin: 5px 0; padding: 5px; background: #f9f9f9;">
+                            <strong>${task.id}</strong>: ${task.title}
+                            <small>(${task.effort} ч.)</small>
+                        </div>
+                    `;
+                    });
+                }
+
+                html += `
+                    </div>
+                </div>
+            `;
+            }
+
+            html += `</div>`;
+            resultDiv.innerHTML = html;
+
+            // Добавляем визуальное различие в стилях
+            const style = document.createElement('style');
+            style.textContent = `
+            .digital-employee { background: #e3f2fd; border-left: 4px solid #2196f3; }
+            .human-employee { background: #f9f9f9; border-left: 4px solid #4caf50; }
+        `;
+            document.head.appendChild(style);
+
+        } catch (e) {
+            alert('Ошибка планирования: ' + (e.response?.data?.detail || e.message));
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🚀 Запустить полный цикл планирования';
+        }
+    }
+
+    function addStep(title, status) {
+        const stepsDiv = document.getElementById('planning-steps');
+        const stepDiv = document.createElement('div');
+        stepDiv.className = `step ${status}`;
+        stepDiv.innerHTML = `<h3>${title}</h3>`;
+        stepsDiv.appendChild(stepDiv);
+    }
+
+    function updateStep(index, status) {
+        const steps = document.querySelectorAll('.step');
+        if (steps[index]) {
+            steps[index].className = `step ${status}`;
+        }
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function showGanttChart(sessionId) {
+        const response = await axios.get(`/api/planning/result/${sessionId}`);
+        const data = response.data;
+
+        const chartDiv = document.getElementById('gantt-chart');
+        chartDiv.innerHTML = '<h2>График плана (Gantt)</h2>';
+
+        // Упрощенный график
+        for (const [empId, forecasts] of Object.entries(data.forecasts)) {
+            const row = document.createElement('div');
+            row.className = 'gantt-row';
+
+            const label = document.createElement('div');
+            label.className = 'gantt-label';
+            label.textContent = empId;
+
+            const bar = document.createElement('div');
+            bar.className = 'gantt-bar';
+            bar.style.width = `${Math.min(forecast.predicted_effort * 2, 200)}px`;
+            bar.textContent = forecast.task_id;
+
+            row.appendChild(label);
+            row.appendChild(bar);
+            chartDiv.appendChild(row);
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}📋 Управление Задачами{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/tasks.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>📋 Управление Задачами</h1>
+
+<!-- Фильтры -->
+<div class="filter-card">
+    <h3>🔍 Фильтры</h3>
+    <div class="filter-row">
+        <div class="filter-group">
+            <label><strong>Статус:</strong></label>
+            <select id="status-filter" onchange="applyFilters()">
+                <option value="">Все статусы</option>
+                <option value="backlog">BACKLOG</option>
+                <option value="planned">PLANNED</option>
+                <option value="in_progress">IN_PROGRESS</option>
+                <option value="review">REVIEW</option>
+                <option value="done">DONE</option>
+                <option value="blocked">BLOCKED</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label><strong>Исполнитель:</strong></label>
+            <select id="assignee-filter" onchange="applyFilters()">
+                <option value="">Все исполнители</option>
+                <option value="unassigned">⚪ Неназначенные</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <button onclick="resetFilters()" class="edit-btn">🔄 Сбросить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Форма создания -->
+<div class="form-card">
+    <h2>➕ Создать новую задачу</h2>
+    <form id="create-task-form">
+        <input type="text" id="task_id" placeholder="ID задачи (например: T-123)" required>
+        <input type="text" id="task_title" placeholder="Название задачи" required>
+        <textarea id="task_description" placeholder="Описание задачи" rows="3" required></textarea>
+
+        <h4>Требуемые навыки:</h4>
+        <select id="task_skills_select" multiple class="skill-dropdown"></select>
+
+        <select id="task_priority">
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="CRITICAL">CRITICAL</option>
+            <option value="HIGH">HIGH</option>
+            <option value="LOW">LOW</option>
+        </select>
+
+        <input type="number" id="task_effort" placeholder="Оценка трудоемкости (часы)" value="8" required>
+        <input type="datetime-local" id="task_deadline">
+        <button type="submit">Создать задачу</button>
+    </form>
+    <div id="create-result"></div>
+</div>
+
+<!-- Нераспределенные задачи -->
+<div id="unassigned-section">
+    <!-- КНОПКА ПЕРЕРАСПРЕДЕЛЕНИЯ -->
+    <div style="margin-bottom: 15px;">
+        <button onclick="redistributeTasks()" class="redistribute-btn">
+            🔄 Перераспределить все задачи
+        </button>
+    </div>
+    <h2>⏳ Нераспределенные задачи</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Приоритет</th>
+            <th>Навыки</th>
+            <th>Оценка</th>
+            <th>Создана</th>      <!-- НОВАЯ КОЛОНКА -->
+            <th>Дедлайн</th>      <!-- НОВАЯ КОЛОНКА -->
+            <th>Назначить</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="unassigned-tasks"></tbody>
+    </table>
+</div>
+
+<!-- Распределенные задачи -->
+<div id="assigned-section">
+    <h2>✅ Распределенные задачи</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Исполнитель</th>
+            <th>Приоритет</th>
+            <th>Статус</th>
+            <th>Назначена</th>    <!-- НОВАЯ КОЛОНКА -->
+            <th>Дедлайн</th>      <!-- НОВАЯ КОЛОНКА -->
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="assigned-tasks"></tbody>
+    </table>
+</div>
+
+<!-- Отфильтрованные задачи -->
+<div id="filtered-results-section" style="display: none;">
+    <h2>🔍 Отфильтрованные задачи</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Исполнитель</th>
+            <th>Приоритет</th>
+            <th>Статус</th>
+
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="filtered-tasks"></tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/tasks.js?v=2') }}"></script>
+{% endblock %}

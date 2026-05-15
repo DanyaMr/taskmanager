@@ -1,0 +1,247 @@
+/* ============================================ */
+/* === Улучшенные стили для страницы задач === */
+/* ============================================ */
+
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --digital-gradient: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+    --danger-gradient: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    --success-gradient: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    --warning-gradient: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.08);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.12);
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --border-radius: 12px;
+    --border-radius-sm: 6px;
+}
+
+/* Фильтры */
+.filter-card {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    padding: 20px;
+    border: none;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+}
+
+.filter-row {
+    display: flex;
+    gap: 20px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    flex: 1;
+
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1976d2;
+}
+
+/* Форма создания */
+.form-card {
+    background: white;
+    padding: 25px;
+    border: none;
+    margin: 20px 0;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+}
+
+.form-card h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.form-card h4 {
+    margin: 15px 0 10px 0;
+    color: #555;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 12px 16px;
+    margin: 8px 0;
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Таблицы */
+table {
+    border-collapse: separate;
+    width: 100%;
+    margin: 20px 0;
+    background: white;
+    box-shadow: var(--shadow-light);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+thead {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+th {
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: var(--transition);
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Цвета статусов */
+tbody tr.backlog { background: linear-gradient(to right, rgba(108, 117, 125, 0.05) 0%, transparent 100%); }
+tbody tr.planned { background: linear-gradient(to right, rgba(23, 162, 184, 0.05) 0%, transparent 100%); }
+tbody tr.in_progress { background: linear-gradient(to right, rgba(0, 123, 255, 0.05) 0%, transparent 100%); }
+tbody tr.review { background: linear-gradient(to right, rgba(255, 193, 7, 0.05) 0%, transparent 100%); }
+tbody tr.done { background: linear-gradient(to right, rgba(40, 167, 69, 0.05) 0%, transparent 100%); }
+tbody tr.blocked { background: linear-gradient(to right, rgba(220, 53, 69, 0.05) 0%, transparent 100%); }
+
+/* Эффект при наведении */
+tbody tr:hover td {
+    background: #f8f9ff;
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Кнопки */
+button {
+    padding: 8px 16px;
+    margin: 2px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.delete-btn {
+    background: var(--danger-gradient);
+    color: white;
+}
+
+.edit-btn {
+    background: var(--warning-gradient);
+    color: black;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-light);
+}
+
+/* Селекты в таблице */
+.status-select, .assignee-select {
+    font-size: 13px;
+    padding: 6px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid #ddd;
+}
+/* Выпадающие списки в таблице */
+.priority-select, .skills-select, .effort-input {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.skills-select {
+    height: 60px;
+}
+
+.effort-input {
+    height: 30px;
+}
+
+/* Кнопка перераспределения */
+.redistribute-btn {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    box-shadow: var(--shadow-medium);
+    transition: var(--transition);
+}
+
+.redistribute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-heavy);
+}
+
+/* Select действий */
+.action-select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Визуальная обратная связь при обновлении */
+tr.updating {
+    opacity: 0.5;
+    transition: opacity 0.3s;
+}
+
+tr.updated {
+    animation: flash 0.5s;
+}
+
+@keyframes flash {
+    0% { background-color: #d4edda; }
+    100% { background-color: transparent; }
+}
+
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    table {
+        font-size: 13px;
+    }
+
+    th, td {
+        padding: 10px 6px;
+    }
+}

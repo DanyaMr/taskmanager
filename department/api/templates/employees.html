@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}👥 Управление Сотрудниками{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/employees.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>👥 Управление Сотрудниками</h1>
+
+<div class="form-card">
+    <h2>➕ Создать сотрудника</h2>
+    <form id="create-employee-form">
+        <input type="text" id="emp_id" placeholder="ID сотрудника (например: E-123)" required>
+        <input type="text" id="emp_name" placeholder="Имя сотрудника" required>
+        <select id="emp_type">
+            <option value="human">Человек</option>
+            <option value="digital">Цифровой</option>
+        </select>
+        <input type="number" id="emp_capacity" placeholder="Емкость (часов/нед)" value="40">
+        <input type="text" id="emp_skills" placeholder='Навыки (через запятую): python,ml,devops'>
+        <button type="submit">Создать сотрудника</button>
+    </form>
+    <div id="create-emp-result"></div>
+</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Имя</th>
+        <th>Тип</th>
+        <th>Загрузка</th>
+        <th>Емкость</th>
+        <th>Навыки</th>
+        <th>Задачи</th>
+        <th>Действие</th>
+    </tr>
+    </thead>
+    <tbody id="employees-table"></tbody>
+
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/employees.js') }}"></script>
+{% endblock %}

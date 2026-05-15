@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>...</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    {% block extra_head %}{% endblock %}  <!-- ДОБАВЬТЕ ЭТУ СТРОКУ -->
+</head>
+<body>
+<header>...</header>
+<main>
+    {% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}  <!-- ОБЯЗАТЕЛЬНО ДОБАВЬТЕ -->
+</body>
+</html>
