@@ -125,13 +125,13 @@ docker-compose exec taskmanager python department/database/reset_database.py
 ```
 
 **Без Docker:**
-windows
-
-```bash
-python -m department.database.reset_database
-```
 
 mac
+```bash
+python3 -m department.database.reset_database
+```
+
+windows
 ```bash
 py -m department.database.reset_database
 ```
