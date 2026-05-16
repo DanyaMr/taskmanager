@@ -104,3 +104,15 @@ py -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 - База данных хранится в `department/database/department.db`
 - Векторное хранилище RAG находится в `department/rag/vector_db/chroma.sqlite3`
 - Эти файлы сохраняются между запусками благодаря volumes в docker-compose.yml
+
+## Сброс базы данных
+
+**Через Docker:**
+```bash
+docker-compose exec taskmanager python department/database/reset_database.py
+```
+
+**Без Docker:**
+```bash
+python -m department.database.reset_database
+```
