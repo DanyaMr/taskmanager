@@ -23,5 +23,5 @@ RUN chmod +x entrypoint.sh
 # Экспортирование порта
 EXPOSE 8000
 
-# Запуск через entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
+# Запуск через entrypoint с bash
+ENTRYPOINT ["bash", "./entrypoint.sh"]

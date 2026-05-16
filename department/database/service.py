@@ -55,12 +55,14 @@ class DatabaseService:
             )
             session.merge(employee)
 
-            # Правильная работа с many-to-many
+            # Правильная работа с many-to-many (skill_ids - это названия навыков)
             if hasattr(employee_detail, 'skill_ids') and employee_detail.skill_ids:
-                for skill_id in employee_detail.skill_ids:
-                    skill = session.query(SkillDB).get(skill_id)
+                for skill_name in employee_detail.skill_ids:
+                    # Ищем по имени (case-insensitive)
+                    skill = session.query(SkillDB).filter(SkillDB.name.ilike(skill_name)).first()
                     if skill and skill not in employee.skills:
                         employee.skills.append(skill)
+                        print(f"✅ Added skill {skill.name} to employee {employee.name}")
 
             session.commit()
             return employee

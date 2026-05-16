@@ -903,17 +903,30 @@ async def create_employee(employee: EmployeeCreate, db: DatabaseService = Depend
         )
         session.add(emp_db)
         
-        # 🔧 Привязываем навыки из employee.skill_ids (ищем по имени, т.к. фронт отправляет названия)
+        # 🔧 Привязываем навыки из employee.skill_ids (создаем если нет)
+        print(f"🔍 Creating employee {employee.name} with skills: {employee.skill_ids}")
         if employee.skill_ids:
             for skill_name in employee.skill_ids:
-                skill = session.query(SkillDB).filter_by(name=skill_name).first()
-                if skill:
-                    emp_db.skills.append(skill)
-                    print(f"✅ Added skill {skill.name} to employee {employee.name}")
-                else:
-                    print(f"⚠️ Skill {skill_name} not found in database")
+                # Пробуем найти по имени (case-insensitive)
+                skill = session.query(SkillDB).filter(SkillDB.name.ilike(skill_name)).first()
+                if not skill:
+                    # Создаем новый навык если не найден
+                    skill_id = f"skill_{skill_name.lower().replace(' ', '_')}"
+                    skill = SkillDB(
+                        id=skill_id,
+                        name=skill_name,
+                        description=f"Навык {skill_name}",
+                        category="general",
+                        is_digital=False
+                    )
+                    session.add(skill)
+                    print(f"🆕 Created skill {skill.name} ({skill_id})")
+                
+                emp_db.skills.append(skill)
+                print(f"✅ Added skill {skill.name} to employee {employee.name}")
         
         session.commit()
+        print(f"✅ Employee {employee.name} created with {len(emp_db.skills)} skills")
 
         return EmployeeResponse(
             id=employee.id,

@@ -8,16 +8,12 @@
 
 ## Установка
 
-**Вариант 1: Git clone (рекомендуется)**
+**Git clone**
 ```bash
 git clone https://github.com/DanyaMr/taskmanager.git
 cd taskmanager
 ```
 
-**Вариант 2: Скачать ZIP**
-- Нажми зелёную кнопку "Code" на GitHub
-- "Download ZIP"
-- Распакуй архив (папка будет называться `taskmanager-main`)
 
 ---
 
@@ -75,7 +71,7 @@ docker-compose down -v
 
 ---
 
-## Запуск без Docker (не рекомендуется)
+## Запуск без Docker
 
 ### Требования
 - Python 3.10+
@@ -89,7 +85,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r department/requirements.txt
 
-# Запуск через модуль (важно для работы импортов!)
+# Запуск
 python -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -121,12 +117,6 @@ py -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## Примечания
-
-- База данных хранится в `department/database/department.db`
-- Векторное хранилище RAG находится в `department/rag/vector_db/chroma.sqlite3`
-- Эти файлы сохраняются между запусками благодаря volumes в docker-compose.yml
-
 ## Сброс базы данных
 
 **Через Docker:**
@@ -135,6 +125,13 @@ docker-compose exec taskmanager python department/database/reset_database.py
 ```
 
 **Без Docker:**
+windows
+
 ```bash
 python -m department.database.reset_database
+```
+
+mac
+```bash
+python3 -m department.database.reset_database
 ```

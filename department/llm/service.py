@@ -52,7 +52,7 @@ class LLMService:
     - Анализ рисков
     """
     
-    DEFAULT_LM_STUDIO_URL = "http://localhost:1234/v1"
+    DEFAULT_LM_STUDIO_URL = "http://host.docker.internal:1234/v1"
     DEFAULT_MODEL = "local-model"
     DEFAULT_TIMEOUT = 320  # секунд
     

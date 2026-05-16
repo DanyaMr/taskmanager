@@ -2,35 +2,48 @@
 Модуль инициализации примерных данных для демонстрации
 """
 
-from enterprise_twin.models.department.database.service import DatabaseService
-from enterprise_twin.models.department.llm.service import LLMService
-from enterprise_twin.models.department.models.employee import HumanEmployee, DigitalEmployee
-from enterprise_twin.models.department.models.skill import SkillDetail, SkillLevel
-from enterprise_twin.models.department.models.task import Task, TaskStatus, Priority
+from department.database.service import DatabaseService
+from department.llm.service import LLMService
+from department.models.employee import HumanEmployee, DigitalEmployee
+from department.models.skill import SkillDetail, SkillLevel
+from department.models.task import Task, TaskStatus, Priority
 
 
 def setup_example_data(db: DatabaseService):
     """Заполнить примерными данными для демонстрации"""
+    
+    session = db.Session()
+    try:
+        # Очищаем старые данные перед созданием новых
+        session.execute("DELETE FROM employee_skills")
+        session.execute("DELETE FROM employees")
+        session.execute("DELETE FROM skills")
+        session.execute("DELETE FROM tasks")
+        session.commit()
+        print("🧹 Old data cleared")
+    finally:
+        session.close()
 
-    # Создаем навыки
+    # Создаем навыки (id и name должны совпадать для корректной работы)
     skills = [
-        SkillDetail("py", "Python", "Python 3.10+, asyncio, type hints", "technical", False),
-        SkillDetail("ml", "Machine Learning", "Scikit-learn, TensorFlow, нейросети", "technical", False),
-        SkillDetail("devops", "DevOps", "Docker, Kubernetes, CI/CD", "technical", False),
-        SkillDetail("nlp", "NLP Processing", "Обработка естественного языка, LLM API", "technical", True),
-        SkillDetail("auto_test", "Auto Testing", "Автоматическое тестирование UI", "technical", True),
+        SkillDetail("py", "py", "Python 3.10+, asyncio, type hints", "technical", False),
+        SkillDetail("ml", "ml", "Machine Learning, Scikit-learn, TensorFlow", "technical", False),
+        SkillDetail("devops", "devops", "Docker, Kubernetes, CI/CD", "technical", False),
+        SkillDetail("nlp", "nlp", "NLP Processing, LLM API", "technical", True),
+        SkillDetail("auto_test", "auto_test", "Автоматическое тестирование UI", "technical", True),
     ]
 
     for skill in skills:
         db.add_skill(skill)
+    print(f"✅ Created {len(skills)} skills")
 
-    # Создаем цифрового сотрудника
+    # Создаем цифрового сотрудника с skill_ids
     digital_bot = DigitalEmployee(
         id="BOT_001",
         name="AutoTester-3000",
         capabilities=["тестирование", "автоматизация", "ui", "проверка"]
     )
-    digital_bot.skills["auto_test"] = SkillLevel(skills[4], 5)
+    digital_bot.skill_ids = ["auto_test"]  # Используем skill_ids для БД
     digital_bot.max_capacity = 168.0
     digital_bot.config = {
         "webhook_url": "http://autotester-3000.internal/api",
@@ -38,16 +51,18 @@ def setup_example_data(db: DatabaseService):
         "parallel_jobs": 5
     }
     db.add_employee(digital_bot)
+    print(f"✅ Created employee {digital_bot.name} with skills: {digital_bot.skill_ids}")
 
-    # Создаем человеческих сотрудников
+    # Создаем человеческих сотрудников с skill_ids
     emp1 = HumanEmployee(id="E001", name="Алексей Петров")
-    emp1.skills["py"] = SkillLevel(skills[0], 5)
-    emp1.skills["ml"] = SkillLevel(skills[1], 4)
+    emp1.skill_ids = ["py", "ml"]  # Используем skill_ids для БД
     db.add_employee(emp1)
+    print(f"✅ Created employee {emp1.name} with skills: {emp1.skill_ids}")
 
     emp2 = HumanEmployee(id="E002", name="Мария Иванова")
-    emp2.skills["devops"] = SkillLevel(skills[2], 5)
+    emp2.skill_ids = ["devops"]  # Используем skill_ids для БД
     db.add_employee(emp2)
+    print(f"✅ Created employee {emp2.name} with skills: {emp2.skill_ids}")
 
     # Создаем задачи
     task1 = Task(

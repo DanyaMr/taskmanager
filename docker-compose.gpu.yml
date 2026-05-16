@@ -9,12 +9,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Сохранение базы данных между запусками
+      - ./:/app
       - ./department/database:/app/department/database
-      # Сохранение векторного хранилища RAG
       - ./department/rag/vector_db:/app/department/rag/vector_db
     environment:
       - PYTHONUNBUFFERED=1
+    # Доступ к хосту для LM Studio (localhost:1234)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         reservations:
