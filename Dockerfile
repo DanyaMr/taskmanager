@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Копирование requirements и установка Python зависимостей
-# CPU-версия torch для систем без NVIDIA GPU
+# CPU-версия torch для Mac и систем без NVIDIA GPU
 COPY department/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
     --extra-index-url https://download.pytorch.org/whl/cpu
@@ -16,8 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt \
 # Копирование проекта
 COPY . .
 
+# Копирование entrypoint скрипта
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 # Экспортирование порта
 EXPOSE 8000
 
-# Запуск сервера
-CMD ["uvicorn", "department.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Запуск через entrypoint
+ENTRYPOINT ["./entrypoint.sh"]

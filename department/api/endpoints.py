@@ -903,13 +903,15 @@ async def create_employee(employee: EmployeeCreate, db: DatabaseService = Depend
         )
         session.add(emp_db)
         
-        # 🔧 Привязываем навыки из employee.skill_ids
+        # 🔧 Привязываем навыки из employee.skill_ids (ищем по имени, т.к. фронт отправляет названия)
         if employee.skill_ids:
-            for skill_id in employee.skill_ids:
-                skill = session.query(SkillDB).get(skill_id)
+            for skill_name in employee.skill_ids:
+                skill = session.query(SkillDB).filter_by(name=skill_name).first()
                 if skill:
                     emp_db.skills.append(skill)
                     print(f"✅ Added skill {skill.name} to employee {employee.name}")
+                else:
+                    print(f"⚠️ Skill {skill_name} not found in database")
         
         session.commit()
 
