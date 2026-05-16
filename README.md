@@ -6,6 +6,21 @@
 
 ---
 
+## Установка
+
+**Вариант 1: Git clone (рекомендуется)**
+```bash
+git clone https://github.com/DanyaMr/taskmanager.git
+cd taskmanager
+```
+
+**Вариант 2: Скачать ZIP**
+- Нажми зелёную кнопку "Code" на GitHub
+- "Download ZIP"
+- Распакуй архив (папка будет называться `taskmanager-main`)
+
+---
+
 ## Быстрый запуск через Docker
 
 ### 1. Установка Docker
