@@ -55,8 +55,7 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ### 3. Открыть веб-интерфейс
 
 ```
-http://localhost:8000/tasks
-http://localhost:8000/employees
+http://localhost:8000
 ```
 
 ### 4. Остановка сервера
