@@ -25,6 +25,7 @@ from department.services.forecasting import ForecastingService
 from department.integration.enterprise_adapter import EnterpriseAdapter
 from department.api.schemas import *
 from department.database.db_models import *
+from sqlalchemy.orm import joinedload
 from department.rag.retriever import TaskRetriever
 
 # Создаем router для API
@@ -843,7 +844,7 @@ async def get_employees_detailed(db: DatabaseService = Depends(get_db)):
     """Получить детальную информацию о сотрудниках с задачами"""
     session = db.Session()
     try:
-        employees = session.query(EmployeeDB).all()
+        employees = session.query(EmployeeDB).options(joinedload(EmployeeDB.skills)).all()
         result = []
         for emp in employees:
             tasks = session.query(TaskDB).filter_by(assigned_id=emp.id).all()
@@ -1420,10 +1421,12 @@ async def redistribute_tasks(
             employees.append(emp)
         print(f"=== Converted {len(employees)} employees")
         
-        # Запускаем оптимизацию
+        # Запускаем оптимизацию с LLM для оценки возможностей
         print("=== Starting Planning optimization...")
         from department.services.planning import Planning
-        planning = Planning(employees)
+        from department.llm.service import LLMService
+        llm_service = LLMService()
+        planning = Planning(employees, llm_service=llm_service)
         result = planning.optimize_assignment(tasks, days=days)
         print(f"=== Optimization result: success={result.success}, assignments={len(result.assignments)}")
         

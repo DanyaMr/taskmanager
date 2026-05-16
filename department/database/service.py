@@ -44,27 +44,69 @@ class DatabaseService:
         """Добавить сотрудника с правильной обработкой навыков"""
         session = self.Session()
         try:
-            employee = EmployeeDB(
-                id=employee_detail.id,
-                name=employee_detail.name,
-                type=employee_detail.type,
-                max_capacity=employee_detail.max_capacity,
-                config=getattr(employee_detail, 'config', {}),
-                current_load=0.0,
-                performance_score=1.0
-            )
-            session.merge(employee)
-
-            # Правильная работа с many-to-many (skill_ids - это названия навыков)
+            # Сначала создаем навыки если их нет
             if hasattr(employee_detail, 'skill_ids') and employee_detail.skill_ids:
                 for skill_name in employee_detail.skill_ids:
-                    # Ищем по имени (case-insensitive)
                     skill = session.query(SkillDB).filter(SkillDB.name.ilike(skill_name)).first()
-                    if skill and skill not in employee.skills:
-                        employee.skills.append(skill)
-                        print(f"✅ Added skill {skill.name} to employee {employee.name}")
+                    if not skill:
+                        skill = SkillDB(
+                            id=skill_name,
+                            name=skill_name,
+                            description=f"Навык {skill_name}",
+                            category="general",
+                            is_digital=False
+                        )
+                        session.add(skill)
+                        session.commit()
+
+            # Проверяем существует ли сотрудник
+            employee = session.query(EmployeeDB).get(employee_detail.id)
+            if employee:
+                # Обновляем существующего
+                employee.name = employee_detail.name
+                employee.type = employee_detail.type
+                employee.max_capacity = employee_detail.max_capacity
+                employee.config = getattr(employee_detail, 'config', {})
+                employee.current_load = 0.0
+                employee.performance_score = 1.0
+            else:
+                # Создаем нового
+                employee = EmployeeDB(
+                    id=employee_detail.id,
+                    name=employee_detail.name,
+                    type=employee_detail.type,
+                    max_capacity=employee_detail.max_capacity,
+                    config=getattr(employee_detail, 'config', {}),
+                    current_load=0.0,
+                    performance_score=1.0
+                )
+                session.add(employee)
+                session.flush()
 
             session.commit()
+
+            # Удаляем старые навыки и привязываем новые
+            if hasattr(employee_detail, 'skill_ids') and employee_detail.skill_ids:
+                from department.database.db_models import employee_skills
+                # Сначала удаляем старые связи
+                session.execute(
+                    employee_skills.delete().where(employee_skills.c.employee_id == employee.id)
+                )
+                
+                # Привязываем новые навыки
+                for skill_name in employee_detail.skill_ids:
+                    skill = session.query(SkillDB).filter(SkillDB.name.ilike(skill_name)).first()
+                    if skill:
+                        session.execute(
+                            employee_skills.insert().values(
+                                employee_id=employee.id,
+                                skill_id=skill.id,
+                                level=1
+                            )
+                        )
+                
+                session.commit()
+
             return employee
         except Exception as e:
             session.rollback()

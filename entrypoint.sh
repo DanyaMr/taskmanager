@@ -5,7 +5,7 @@ export PYTHONPATH=/app
 
 # Инициализация базы данных (добавление начальных навыков)
 echo "🔧 Initializing database..."
-# python department/database/setup.py
+python department/database/setup.py
 
 # Запуск сервера
 echo "🚀 Starting server..."

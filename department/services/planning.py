@@ -20,6 +20,7 @@ from department.models.task import Task, TaskStatus, Priority
 from department.models.employee import Employee
 from department.services.forecasting import ForecastingService
 from department.database.service import DatabaseService
+from department.llm.service import LLMService
 
 
 @dataclass
@@ -78,7 +79,8 @@ class Planning:
     def __init__(
         self,
         employees: List[Employee],
-        forecasting_service: Optional[ForecastingService] = None
+        forecasting_service: Optional[ForecastingService] = None,
+        llm_service: Optional[LLMService] = None
     ):
         """
         Инициализация планировщика.
@@ -86,10 +88,12 @@ class Planning:
         Args:
             employees: Список сотрудников
             forecasting_service: Сервис прогнозирования
+            llm_service: Сервис LLM для оценки возможности выполнения
         """
         self.employees = employees
         self.forecasting_service = forecasting_service or ForecastingService(employees)
         self._employees_by_id = {emp.id: emp for emp in employees}
+        self.llm_service = llm_service
     
     def create_plan(
         self,
@@ -196,13 +200,14 @@ class Planning:
         
         for i, task in enumerate(sorted_tasks):
             for j, emp in enumerate(self.employees):
-                # Проверяем возможность выполнения для всех сотрудников одинаково
-                can_perform = emp.can_perform_task(task)
+                # LLM оценивает возможность выполнения на основе логики
+                can_perform, confidence = self._llm_can_perform(emp, task)
                 feasibility_matrix[i][j] = can_perform
                 
                 if can_perform:
                     forecast = self.forecasting_service.estimate_task(task, emp.type)
-                    time_matrix[i][j] = forecast.predicted_effort
+                    # Применяем confidence к effort (уверенность снижает время)
+                    time_matrix[i][j] = forecast.predicted_effort * (2 - confidence)
                 else:
                     # Большое число для невозможных назначений
                     time_matrix[i][j] = 1e6
@@ -493,6 +498,68 @@ class Planning:
             "surplus_deficit": round(total_capacity - required_effort, 1)
         }
     
+    def _llm_can_perform(self, employee: Employee, task: Task) -> Tuple[bool, float]:
+        """
+        LLM оценивает возможность выполнения задачи сотрудником на основе логики.
+        
+        Args:
+            employee: Сотрудник
+            task: Задача
+            
+        Returns:
+            (can_perform: bool, confidence: float)
+        """
+        if not self.llm_service:
+            # Fallback: используем простую проверку навыков
+            return employee.can_perform_task(task), 0.5
+        
+        # Формируем промпт для LLM
+        prompt = f"""
+Сотрудник: {employee.name} ({employee.type})
+Навыки сотрудника: {list(employee.skills.keys())}
+Capabilities: {employee.config.get('capabilities', [])}
+
+Задача: {task.title}
+Описание: {task.description}
+Требуемые навыки: {task.required_skills}
+
+Вопрос: Может ли этот сотрудник выполнить эту задачу?
+Объясни логику и верни ответ в формате JSON:
+{{
+    "can_perform": true,
+    "confidence": 0.8,
+    "reasoning": "Краткое объяснение..."
+}}
+
+Только JSON, без дополнительного текста.
+"""
+        
+        messages = [
+            {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Анализируй навыки и задачу, принимай решение на основе логики."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=256)
+            
+            if response:
+                # Пытаемся найти JSON в ответе
+                start_idx = response.find("{")
+                end_idx = response.rfind("}") + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    import json
+                    data = json.loads(response[start_idx:end_idx])
+                    
+                    can_perform = data.get("can_perform", employee.can_perform_task(task))
+                    confidence = float(data.get("confidence", 0.5))
+                    
+                    return can_perform, confidence
+        except Exception as e:
+            print(f"LLM evaluation error: {e}")
+        
+        # Fallback
+        return employee.can_perform_task(task), 0.5
+
     def assign_task_to_employee(
         self,
         task: Task,

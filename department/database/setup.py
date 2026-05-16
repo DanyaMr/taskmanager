@@ -12,25 +12,15 @@ from department.models.task import Task, TaskStatus, Priority
 def setup_example_data(db: DatabaseService):
     """Заполнить примерными данными для демонстрации"""
     
-    session = db.Session()
-    try:
-        # Очищаем старые данные перед созданием новых
-        session.execute("DELETE FROM employee_skills")
-        session.execute("DELETE FROM employees")
-        session.execute("DELETE FROM skills")
-        session.execute("DELETE FROM tasks")
-        session.commit()
-        print("🧹 Old data cleared")
-    finally:
-        session.close()
-
     # Создаем навыки (id и name должны совпадать для корректной работы)
     skills = [
-        SkillDetail("py", "py", "Python 3.10+, asyncio, type hints", "technical", False),
+        SkillDetail("python", "python", "Python 3.10+, asyncio, type hints", "technical", False),
         SkillDetail("ml", "ml", "Machine Learning, Scikit-learn, TensorFlow", "technical", False),
         SkillDetail("devops", "devops", "Docker, Kubernetes, CI/CD", "technical", False),
         SkillDetail("nlp", "nlp", "NLP Processing, LLM API", "technical", True),
         SkillDetail("auto_test", "auto_test", "Автоматическое тестирование UI", "technical", True),
+        SkillDetail("backend", "backend", "Backend разработка, API, базы данных", "technical", False),
+        SkillDetail("frontend", "frontend", "Frontend разработка, JavaScript, React", "technical", False),
     ]
 
     for skill in skills:
@@ -55,7 +45,7 @@ def setup_example_data(db: DatabaseService):
 
     # Создаем человеческих сотрудников с skill_ids
     emp1 = HumanEmployee(id="E001", name="Алексей Петров")
-    emp1.skill_ids = ["py", "ml"]  # Используем skill_ids для БД
+    emp1.skill_ids = ["python", "ml"]  # Используем skill_ids для БД
     db.add_employee(emp1)
     print(f"✅ Created employee {emp1.name} with skills: {emp1.skill_ids}")
 
@@ -64,14 +54,14 @@ def setup_example_data(db: DatabaseService):
     db.add_employee(emp2)
     print(f"✅ Created employee {emp2.name} with skills: {emp2.skill_ids}")
 
-    # Создаем задачи
+    # Создаем задачи с навыками по имени
     task1 = Task(
         id="T001",
         title="Разработка модуля авторизации",
         description="Реализовать OAuth 2.0 с JWT токенами",
         priority=Priority.HIGH,
         estimated_effort=40.0,
-        required_skills={"py": 4}
+        required_skills={"python": 4}
     )
     db.add_task(task1)
 
