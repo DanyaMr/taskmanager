@@ -8,10 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Копирование requirements и установка Python зависимостей
-# CPU-версия torch для систем без NVIDIA GPU
+# GPU-версия torch для систем с NVIDIA GPU
 COPY department/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Копирование проекта
 COPY . .

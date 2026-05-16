@@ -41,12 +41,19 @@ https://www.docker.com/products/docker-desktop/
 
 ### 2. Запуск сервера
 
+**Для Mac и систем без NVIDIA GPU:**
 ```bash
-# Сборка и запуск
+# Сборка и запуск (CPU-версия)
 docker-compose up --build
 
 # Или в фоновом режиме
 docker-compose up -d --build
+```
+
+**Для систем с NVIDIA GPU:**
+```bash
+# Использовать Dockerfile.gpu
+docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
 ### 3. Открыть веб-интерфейс
