@@ -40,16 +40,16 @@ https://www.docker.com/products/docker-desktop/
 **Для Mac и систем без NVIDIA GPU:**
 ```bash
 # Сборка и запуск (CPU-версия)
-docker-compose up --build
+docker compose up --build
 
 # Или в фоновом режиме
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 **Для систем с NVIDIA GPU:**
 ```bash
 # Использовать Dockerfile.gpu
-docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
 ### 3. Открыть веб-интерфейс
@@ -63,10 +63,10 @@ http://localhost:8000/employees
 
 ```bash
 # Остановка
-docker-compose down
+docker compose down
 
 # Остановка с удалением томов (база данных удалится!)
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
@@ -121,7 +121,7 @@ py -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 
 **Через Docker:**
 ```bash
-docker-compose exec taskmanager python department/database/reset_database.py
+docker compose exec taskmanager python department/database/reset_database.py
 ```
 
 **Без Docker:**
