@@ -97,7 +97,7 @@ py -m venv venv
 venv\Scripts\activate
 pip install -r department\requirements.txt
 
-# Запуск через модуль (важно для работы импортов!)
+# Запуск
 py -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
