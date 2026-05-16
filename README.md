@@ -86,7 +86,7 @@ source venv/bin/activate
 pip install -r department/requirements.txt
 
 # Запуск
-python -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
+python3 -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Windows
@@ -133,5 +133,5 @@ python -m department.database.reset_database
 
 mac
 ```bash
-python3 -m department.database.reset_database
+py -m department.database.reset_database
 ```
