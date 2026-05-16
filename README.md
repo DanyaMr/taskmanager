@@ -1,11 +1,5 @@
 # Task Manager - Инструкция по запуску
 
-## Требования
-
-- **Docker** и **Docker Compose**
-
----
-
 ## Установка
 
 **Git clone**
