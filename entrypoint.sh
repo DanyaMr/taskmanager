@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Настройка PYTHONPATH
+export PYTHONPATH=/app
+
 # Инициализация базы данных (добавление начальных навыков)
 echo "🔧 Initializing database..."
 python department/database/setup.py
