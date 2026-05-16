@@ -4,6 +4,8 @@ window.axios = {
         const fullUrl = config?.params ? `${url}?${new URLSearchParams(config.params)}` : url;
         const response = await fetch(fullUrl);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // Обработка 204 No Content
+        if (response.status === 204) return { data: null };
         return { data: await response.json() };
     },
     post: async (url, data, config) => {
@@ -15,6 +17,8 @@ window.axios = {
         const fullUrl = config?.params ? `${url}?${new URLSearchParams(config.params)}` : url;
         const response = await fetch(fullUrl, options);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // Обработка 204 No Content
+        if (response.status === 204) return { data: null };
         return { data: await response.json() };
     },
     put: async (url, data, config) => {
@@ -26,12 +30,28 @@ window.axios = {
         const fullUrl = config?.params ? `${url}?${new URLSearchParams(config.params)}` : url;
         const response = await fetch(fullUrl, options);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // Обработка 204 No Content
+        if (response.status === 204) return { data: null };
         return { data: await response.json() };
     },
     delete: async (url) => {
         const response = await fetch(url, { method: 'DELETE' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return { data: await response.json() };
+        // Обработка 204 No Content - пустой ответ
+        if (response.status === 204) {
+            return { data: null };
+        }
+        const text = await response.text();
+        // Проверяем, что текст не пустой перед парсингом
+        if (!text || text.trim() === '') {
+            return { data: null };
+        }
+        try {
+            return { data: JSON.parse(text) };
+        } catch (e) {
+            console.warn('Failed to parse DELETE response as JSON:', text);
+            return { data: null };
+        }
     }
 };
 
@@ -333,10 +353,27 @@ async function updateStatus(taskId, status) {
 async function deleteTask(taskId) {
     if (!confirm(`Удалить задачу ${taskId}?`)) return;
     try {
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (row) {
+            row.style.opacity = '0.5';
+            row.style.transition = 'opacity 0.3s';
+        }
+        
         await axios.delete(`/api/v1/tasks/${taskId}`);
-        loadData();
+        
+        // Удаляем строку из DOM
+        if (row) {
+            row.remove();
+        }
+        console.log(`✅ Задача ${taskId} удалена`);
     } catch (error) {
-        console.error('Ошибка удаления:', error);
+        console.error('❌ Ошибка удаления:', error);
+        alert('Ошибка при удалении задачи: ' + error.message);
+        // Восстанавливаем строку если ошибка
+        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
+        if (row) {
+            row.style.opacity = '1';
+        }
     }
 }
 // Обновление приоритета

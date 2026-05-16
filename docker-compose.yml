@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  taskmanager:
+    build: .
+    container_name: taskmanager
+    ports:
+      - "8000:8000"
+    volumes:
+      # Сохранение базы данных между запусками
+      - ./department/database:/app/department/database
+      # Сохранение векторного хранилища RAG
+      - ./department/rag/vector_db:/app/department/rag/vector_db
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

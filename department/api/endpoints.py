@@ -1105,7 +1105,7 @@ async def delete_task(
         session.close()
 
 
-@router.post("/tasks/{task_id}/status")
+@router.put("/tasks/{task_id}/status")
 async def update_task_status(
     task_id: str,
     status: str = Query(...),
@@ -1131,6 +1131,92 @@ async def update_task_status(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка обновления статуса: {str(e)}")
+    finally:
+        session.close()
+
+
+@router.put("/tasks/{task_id}/priority")
+async def update_task_priority(
+    task_id: str,
+    priority: str = Query(...),
+    db: DatabaseService = Depends(get_db)
+):
+    """Обновить приоритет задачи"""
+    session = db.Session()
+    try:
+        task = session.query(TaskDB).get(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail=f"Задача {task_id} не найдена")
+        
+        priority_map = {
+            "CRITICAL": 1, "HIGH": 2, "MEDIUM": 3, "LOW": 4, "TRIVIAL": 3,
+            "critical": 1, "high": 2, "medium": 3, "low": 4
+        }
+        priority_value = priority_map.get(priority)
+        if priority_value is None:
+            raise HTTPException(status_code=400, detail=f"Неверный приоритет: {priority}")
+        
+        task.priority = priority_value
+        session.commit()
+        
+        return {"success": True, "task_id": task_id, "new_priority": priority}
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления приоритета: {str(e)}")
+    finally:
+        session.close()
+
+
+@router.put("/tasks/{task_id}/skills")
+async def update_task_skills(
+    task_id: str,
+    skills: Dict[str, int],
+    db: DatabaseService = Depends(get_db)
+):
+    """Обновить навыки задачи"""
+    session = db.Session()
+    try:
+        task = session.query(TaskDB).get(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail=f"Задача {task_id} не найдена")
+        
+        task.required_skills = skills
+        session.commit()
+        
+        return {"success": True, "task_id": task_id, "skills": skills}
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления навыков: {str(e)}")
+    finally:
+        session.close()
+
+
+@router.put("/tasks/{task_id}/effort")
+async def update_task_effort(
+    task_id: str,
+    effort: float = Query(...),
+    db: DatabaseService = Depends(get_db)
+):
+    """Обновить оценку трудоемкости задачи"""
+    session = db.Session()
+    try:
+        task = session.query(TaskDB).get(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail=f"Задача {task_id} не найдена")
+        
+        task.estimated_effort = effort
+        session.commit()
+        
+        return {"success": True, "task_id": task_id, "effort": effort}
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка обновления оценки: {str(e)}")
     finally:
         session.close()
 

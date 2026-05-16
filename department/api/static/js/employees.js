@@ -26,7 +26,19 @@ window.axios = {
             const errorData = await response.json().catch(() => ({}));
             throw { response: { data: errorData } };
         }
-        return { data: await response.json() };
+        // Обработка 204 No Content - пустой ответ
+        if (response.status === 204) {
+            return { data: null };
+        }
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+            return { data: null };
+        }
+        try {
+            return { data: JSON.parse(text) };
+        } catch (e) {
+            return { data: null };
+        }
     }
 };
 
@@ -80,12 +92,29 @@ document.getElementById('create-employee-form').addEventListener('submit', async
 async function deleteEmployee(empId) {
     if (!confirm(`Удалить сотрудника ${empId}?`)) return;
 
+    // Находим строку по data-атрибуту
+    const row = document.querySelector(`tr[data-employee-id="${empId}"]`);
+    
+    if (row) {
+        row.style.opacity = '0.5';
+        row.style.transition = 'opacity 0.3s';
+    }
+
     try {
         await axios.delete(`/api/employees/${empId}`);
-        alert('Сотрудник удален');
-        loadEmployees();
+        
+        // Удаляем строку из DOM
+        if (row) {
+            row.remove();
+        }
+        console.log(`✅ Сотрудник ${empId} удален`);
     } catch (error) {
-        alert(`Ошибка: ${error.response?.data?.detail || 'Неизвестная ошибка'}`);
+        console.error('❌ Ошибка удаления:', error);
+        alert(`Ошибка: ${error.response?.data?.detail || error.message || 'Неизвестная ошибка'}`);
+        // Восстанавливаем строку если ошибка
+        if (row) {
+            row.style.opacity = '1';
+        }
     }
 }
 async function loadEmployees() {
@@ -102,7 +131,7 @@ async function loadEmployees() {
         }
 
         tbody.innerHTML = employees.map(emp => `
-            <tr class="${emp.type}">
+            <tr class="${emp.type}" data-employee-id="${emp.id}">
                 <td>${emp.id}</td>
                 <td><strong>${emp.name}</strong></td>
                 <td>${emp.type === 'digital' ? '🤖 Цифровой' : '👤 Человек'}</td>

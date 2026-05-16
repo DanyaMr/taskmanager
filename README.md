@@ -2,70 +2,85 @@
 
 ## Требования
 
-- **Python 3.10** или выше
-- **pip** (менеджер пакетов Python)
+- **Docker** и **Docker Compose**
 
 ---
 
-## Установка и запуск
+## Быстрый запуск через Docker
 
-### macOS
+### 1. Установка Docker
 
-#### 1. Установка Python
+**macOS:**
 ```bash
-# Проверка версии Python
-python3 --version
+# Установка через Homebrew
+brew install --cask docker
 
-# Если Python не установлен, установите через Homebrew
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python@3.10
+# Или скачать с docker.com
 ```
 
-#### 2. Установка зависимостей
+**Windows:**
+```bash
+# Скачать и установить с docker.com
+https://www.docker.com/products/docker-desktop/
+```
+
+### 2. Запуск сервера
+
+```bash
+# Сборка и запуск
+docker-compose up --build
+
+# Или в фоновом режиме
+docker-compose up -d --build
+```
+
+### 3. Открыть веб-интерфейс
+
+```
+http://localhost:8000/tasks
+http://localhost:8000/employees
+```
+
+### 4. Остановка сервера
+
+```bash
+# Остановка
+docker-compose down
+
+# Остановка с удалением томов (база данных удалится!)
+docker-compose down -v
+```
+
+---
+
+## Запуск без Docker (не рекомендуется)
+
+### Требования
+- Python 3.10+
+- pip
+
+### macOS / Linux
+
 ```bash
 cd taskmanager
 python3 -m venv venv
 source venv/bin/activate
 pip install -r department/requirements.txt
-```
 
-#### 3. Запуск сервера
-```bash
-uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
+# Запуск через модуль (важно для работы импортов!)
+python -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
-
-#### 4. Открыть веб-интерфейс
-```
-http://localhost:8000/tasks
-http://localhost:8000/employees
-```
-
----
 
 ### Windows
 
-#### 1. Установка Python
-1. Скачайте Python 3.10+ с [python.org](https://www.python.org/downloads/)
-2. При установке отметьте галочку **"Add Python to PATH"**
-3. Нажмите "Install Now"
-
-#### 2. Установка зависимостей
 ```cmd
-cd models-2
+cd taskmanager
 py -m venv venv
 venv\Scripts\activate
 pip install -r department\requirements.txt
-```
 
-#### 3. Запуск сервера
-```cmd
-uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-#### 4. Открыть веб-интерфейс
-```
-http://localhost:8000/tasks
-http://localhost:8000/employees
+# Запуск через модуль (важно для работы импортов!)
+py -m uvicorn department.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -79,15 +94,13 @@ http://localhost:8000/employees
 3. Запустите локальный сервер в LM Studio:
    - Порт: `1234`
    - Модель: выбранная модель
-4. Сервис автоматически подключится к `http://localhost:1234/v1`
+
+Сервис автоматически подключится к `http://localhost:1234/v1`
 
 ---
 
 ## Примечания
 
-- База данных создается автоматически при первом запуске
+- База данных хранится в `department/database/department.db`
 - Векторное хранилище RAG находится в `department/rag/vector_db/chroma.sqlite3`
-- Для сброса базы данных выполните:
-  ```bash
-  python department/database/reset_database.py
-  ```
+- Эти файлы сохраняются между запусками благодаря volumes в docker-compose.yml

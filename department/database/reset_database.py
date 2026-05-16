@@ -4,8 +4,9 @@
 
 import os
 from pathlib import Path
-from enterprise_twin.models.department.database.db_models import  Base
-from enterprise_twin.models.department.database.service import DatabaseService
+from department.database.db_models import  Base
+from department.database.service import DatabaseService
+
 
 def reset_database():
     # Определяем путь к БД
