@@ -390,31 +390,16 @@ class Planning:
         for i, task in enumerate(sorted_tasks):
             print(f"  Task {i}: {task.title}, required_skills: {task.required_skills}")
             for j, emp in enumerate(self.employees):
-                # Проверяем возможность выполнения для всех сотрудников одинаково
-                can_perform = emp.can_perform_task(task)
+                # Приоритет 1: LLM оценка
+                # Приоритет 2: Fallback - простое соответствие
+                can_perform, confidence = self._llm_can_perform(emp, task)
                 feasibility_matrix[i][j] = can_perform
                 
                 if can_perform:
                     forecast = self.forecasting_service.estimate_task(task, emp.type)
-                    base_effort = forecast.predicted_effort
-                    
-                    # Вычисляем коэффициент навыка: чем выше навык, тем меньше время
-                    # Находим максимальный уровень навыка среди требуемых
-                    max_skill_level = 1
-                    for skill_name, required_level in task.required_skills.items():
-                        emp_skill_level = emp.get_skill_level(skill_name)
-                        if emp_skill_level > max_skill_level:
-                            max_skill_level = emp_skill_level
-                    
-                    # skill_factor > 1 означает, что сотрудник более квалифицирован
-                    # Уменьшаем время выполнения пропорционально
-                    skill_factor = max_skill_level / max(task.required_skills.values()) if task.required_skills else 1.0
-                    skill_factor = max(0.5, min(2.0, skill_factor))  # Ограничиваем от 0.5 до 2.0
-                    
-                    # Корректируем время: более высокий навык = меньше время
-                    adjusted_effort = base_effort / skill_factor
-                    time_matrix[i][j] = adjusted_effort
-                    print(f"    Emp {j} ({emp.name}, {emp.type}): can_perform={can_perform}, skill_factor={skill_factor:.2f}, adjusted_effort={adjusted_effort:.1f}")
+                    # Применяем confidence к effort (уверенность снижает время)
+                    time_matrix[i][j] = forecast.predicted_effort * (2 - confidence)
+                    print(f"    Emp {j} ({emp.name}, {emp.type}): can_perform={can_perform}, confidence={confidence:.2f}, effort={time_matrix[i][j]:.1f}")
                 else:
                     time_matrix[i][j] = 1e6  # Большое число для невозможных
         
@@ -501,6 +486,8 @@ class Planning:
     def _llm_can_perform(self, employee: Employee, task: Task) -> Tuple[bool, float]:
         """
         LLM оценивает возможность выполнения задачи сотрудником на основе логики.
+        Приоритет 1: LLM оценка
+        Приоритет 2: Простое соответствие навыков (fallback)
         
         Args:
             employee: Сотрудник
@@ -509,12 +496,9 @@ class Planning:
         Returns:
             (can_perform: bool, confidence: float)
         """
-        if not self.llm_service:
-            # Fallback: используем простую проверку навыков
-            return employee.can_perform_task(task), 0.5
-        
-        # Формируем промпт для LLM
-        prompt = f"""
+        # Приоритет 1: Пробуем LLM оценку
+        if self.llm_service:
+            prompt = f"""
 Сотрудник: {employee.name} ({employee.type})
 Навыки сотрудника: {list(employee.skills.keys())}
 Capabilities: {employee.config.get('capabilities', [])}
@@ -533,31 +517,32 @@ Capabilities: {employee.config.get('capabilities', [])}
 
 Только JSON, без дополнительного текста.
 """
-        
-        messages = [
-            {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Анализируй навыки и задачу, принимай решение на основе логики."},
-            {"role": "user", "content": prompt}
-        ]
-        
-        try:
-            response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=256)
             
-            if response:
-                # Пытаемся найти JSON в ответе
-                start_idx = response.find("{")
-                end_idx = response.rfind("}") + 1
-                if start_idx >= 0 and end_idx > start_idx:
-                    import json
-                    data = json.loads(response[start_idx:end_idx])
-                    
-                    can_perform = data.get("can_perform", employee.can_perform_task(task))
-                    confidence = float(data.get("confidence", 0.5))
-                    
-                    return can_perform, confidence
-        except Exception as e:
-            print(f"LLM evaluation error: {e}")
+            messages = [
+                {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Анализируй навыки и задачу, принимай решение на основе логики."},
+                {"role": "user", "content": prompt}
+            ]
+            
+            try:
+                response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=256)
+                
+                if response:
+                    # Пытаемся найти JSON в ответе
+                    start_idx = response.find("{")
+                    end_idx = response.rfind("}") + 1
+                    if start_idx >= 0 and end_idx > start_idx:
+                        import json
+                        data = json.loads(response[start_idx:end_idx])
+                        
+                        can_perform = data.get("can_perform", False)
+                        confidence = float(data.get("confidence", 0.5))
+                        
+                        if can_perform:
+                            return can_perform, confidence
+            except Exception as e:
+                print(f"LLM evaluation error: {e}")
         
-        # Fallback
+        # Приоритет 2: Fallback - простое соответствие навыков
         return employee.can_perform_task(task), 0.5
 
     def assign_task_to_employee(
