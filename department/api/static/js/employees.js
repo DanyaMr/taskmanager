@@ -58,14 +58,20 @@ function toggleTasks(empId) {
 document.getElementById('create-employee-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    // Добавляем префикс "skill_" к навыкам для соответствия с задачами
     const skills = document.getElementById('emp_skills').value.split(',').map(s => s.trim()).filter(s => s);
+    const skillIds = skills.map(s => {
+        // Если навык уже начинается с "skill_", не добавляем префикс
+        if (s.startsWith('skill_')) return s;
+        return `skill_${s}`;
+    });
 
     const empData = {
         id: document.getElementById('emp_id').value,
         name: document.getElementById('emp_name').value,
         type: document.getElementById('emp_type').value,
         max_capacity: parseFloat(document.getElementById('emp_capacity').value),
-        skill_ids: skills,
+        skill_ids: skillIds,
         config: {}
     };
 
