@@ -538,16 +538,39 @@ class Planning:
             response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=1024)
             
             if response:
-                start_idx = response.find("{")
-                end_idx = response.rfind("}") + 1
+                # Находим внешние границы JSON (это может быть как { так и [ )
+                start_idx = min([response.find(c) for c in ['{', '['] if response.find(c) != -1], default=-1)
+                end_idx = max([response.rfind(c) for c in ['}', ']'] if response.rfind(c) != -1], default=-1) + 1
+                
                 if start_idx >= 0 and end_idx > start_idx:
                     import json
-                    data = json.loads(response[start_idx:end_idx])
+                    raw_data = json.loads(response[start_idx:end_idx])
                     
+                    # Нормализация данных к формату: { task_id: {"can_perform": bool, "confidence": float} }
+                    normalized_data = {}
+                    
+                    if isinstance(raw_data, list):
+                        for item in raw_data:
+                            if not isinstance(item, dict):
+                                continue
+                            # Если формат: {"task_id": "T-1", "can_perform": true, ...}
+                            if "task_id" in item:
+                                tid = item["task_id"]
+                                normalized_data[tid] = item
+                            # Если формат: {"T-1": {"can_perform": true, ...}}
+                            else:
+                                for k, v in item.items():
+                                    if isinstance(v, dict):
+                                        normalized_data[k] = v
+                    elif isinstance(raw_data, dict):
+                        normalized_data = raw_data
+                    
+                    # Извлекаем результаты для каждой задачи
                     for task in tasks:
-                        if task.id in data:
-                            task_result = data[task.id]
-                            can_perform = task_result.get("can_perform", False)
+                        if task.id in normalized_data:
+                            task_result = normalized_data[task.id]
+                            # Поддерживаем оба варианта ключа (can_perform / can_execute)
+                            can_perform = task_result.get("can_perform", task_result.get("can_execute", False))
                             confidence = float(task_result.get("confidence", 0.5))
                             results[task.id] = (can_perform, confidence)
                         else:
