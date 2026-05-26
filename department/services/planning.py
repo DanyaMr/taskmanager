@@ -485,9 +485,11 @@ class Planning:
     
     def _llm_can_perform(self, employee: Employee, task: Task) -> Tuple[bool, float]:
         """
-        LLM оценивает возможность выполнения задачи сотрудником на основе логики.
-        Приоритет 1: LLM оценка
-        Приоритет 2: Простое соответствие навыков (fallback)
+        LLM оценивает возможность выполнения задачи сотрудником.
+        LLM САМА проверяет соответствие навыков, а не полагается на прямое совпадение.
+        
+        Приоритет 1: LLM оценка (семантическое понимание навыков)
+        Приоритет 2: Простое соответствие навыков (fallback если LLM недоступен)
         
         Args:
             employee: Сотрудник
@@ -496,35 +498,55 @@ class Planning:
         Returns:
             (can_perform: bool, confidence: float)
         """
-        # Приоритет 1: Пробуем LLM оценку
+        # Приоритет 1: Пробуем LLM оценку с семантическим пониманием
         if self.llm_service:
+            # Формируем список навыков без префиксов для лучшего понимания
+            emp_skills = list(employee.skills.keys())
+            # Убираем префикс "skill_" если есть
+            emp_skills_clean = [s.replace("skill_", "") for s in emp_skills]
+            
+            # Требуемые навыки тоже очищаем
+            required_skills = {k.replace("skill_", ""): v for k, v in task.required_skills.items()}
+            
             prompt = f"""
-Сотрудник: {employee.name} ({employee.type})
-Навыки сотрудника: {list(employee.skills.keys())}
+Сотрудник: {employee.name}
+Тип: {employee.type} (человек или цифровой агент)
+Навыки сотрудника: {emp_skills_clean}
 Capabilities: {employee.config.get('capabilities', [])}
 
 Задача: {task.title}
 Описание: {task.description}
-Требуемые навыки: {task.required_skills}
+Требуемые навыки: {required_skills}
 
-Вопрос: Может ли этот сотрудник выполнить эту задачу?
-Объясни логику и верни ответ в формате JSON:
+**ИНСТРУКЦИЯ:**
+1. Внимательно сравни каждый требуемый навык с навыками сотрудника
+2. Учитывай семантическую близость навыков:
+   - "python" ≈ "backend" ≈ "development" ≈ "programming"
+   - "devops" ≈ "infrastructure" ≈ "deployment" ≈ "ci/cd"
+   - "ml" ≈ "ai" ≈ "machine learning" ≈ "data science"
+   - "frontend" ≈ "react" ≈ "vue" ≈ "ui"
+   - "nlp" ≈ "text" ≈ "language" ≈ "linguistics"
+3. Цифровые сотрудники (digital) могут выполнять автоматизированные задачи
+4. Если требуемый навык отсутствует — задача не может быть выполнена
+
+**Вопрос:** Может ли этот сотрудник выполнить эту задачу?
+Объясни логику проверки каждого навыка и верни ответ в формате JSON:
 {{
     "can_perform": true,
     "confidence": 0.8,
-    "reasoning": "Краткое объяснение..."
+    "reasoning": "У сотрудника есть навык devops который требуется (уровень 3). Также сотрудник имеет backend который семантически близок к python..."
 }}
 
 Только JSON, без дополнительного текста.
 """
             
             messages = [
-                {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Анализируй навыки и задачу, принимай решение на основе логики."},
+                {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Твоя задача — внимательно проверить соответствие навыков сотрудника требуемым навыкам. Используй семантическое понимание навыков."},
                 {"role": "user", "content": prompt}
             ]
             
             try:
-                response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=256)
+                response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=512)
                 
                 if response:
                     # Пытаемся найти JSON в ответе
@@ -537,12 +559,16 @@ Capabilities: {employee.config.get('capabilities', [])}
                         can_perform = data.get("can_perform", False)
                         confidence = float(data.get("confidence", 0.5))
                         
+                        print(f"  LLM response: can_perform={can_perform}, confidence={confidence}")
+                        print(f"  Reasoning: {data.get('reasoning', 'N/A')}")
+                        
                         if can_perform:
                             return can_perform, confidence
             except Exception as e:
                 print(f"LLM evaluation error: {e}")
         
         # Приоритет 2: Fallback - простое соответствие навыков
+        print("  Using fallback: can_perform_task()")
         return employee.can_perform_task(task), 0.5
 
     def assign_task_to_employee(
