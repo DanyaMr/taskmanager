@@ -514,28 +514,23 @@ class Planning:
             required_skills = {k.replace("skill_", ""): v for k, v in task.required_skills.items()}
             tasks_str += f"{i+1}. \"{task.title}\" - требуется: {list(required_skills.keys()) if required_skills else 'none'}\n"
         
-        prompt = f"""
-Сотрудник: {employee.name}
-Тип: {employee.type}
+        # Короткий промпт только с необходимой информацией
+        tasks_json = []
+        for task in tasks:
+            required = list({k.replace("skill_", ""): v for k, v in task.required_skills.items()}.keys())
+            tasks_json.append({"id": task.id, "title": task.title, "requires": required or "none"})
+        
+        import json
+        prompt = f"""Сотрудник: {employee.name} ({employee.type})
 Навыки: {emp_skills_clean}
-Capabilities: {employee.config.get('capabilities', [])}
 
-Задачи для оценки ({len(tasks)} шт):
-{tasks_str}
+Задачи: {json.dumps(tasks_json)}
 
-**ИНСТРУКЦИЯ:**
-Для каждой задачи определи может ли сотрудник её выполнить based on skills.
-Учитывай семантическую близость: python≈backend, devops≈infrastructure, ml≈ai, frontend≈react
-
-Верни JSON в формате:
-{{
-    "{tasks[0].id}": {{"can_perform": true, "confidence": 0.8}},
-    "{tasks[1].id}": {{"can_perform": false, "confidence": 0.5}}
-}}
+Верни ТОЛЬКО JSON: {{"task_id": {{"can_perform": bool, "confidence": 0-1}}}}
 """
         
         messages = [
-            {"role": "system", "content": "Ты эксперт по оценке компетенций. Верни ТОЛЬКО JSON с оценкой всех задач."},
+            {"role": "system", "content": "JSON only. No explanations."},
             {"role": "user", "content": prompt}
         ]
         
