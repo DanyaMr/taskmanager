@@ -29,15 +29,16 @@ class HumanEmployee(Employee):
         return True
 
     def has_skill(self, skill_name: str, required_level: int = 1) -> bool:
-        """Проверить наличие навыка (регистронезависимо)"""
+        """Проверить наличие навыка (регистронезависимо и без учета префикса skill_)"""
         return self.get_skill_level(skill_name) >= required_level
     
     def get_skill_level(self, skill_name: str) -> int:
-        """Получить уровень навыка (регистронезависимо)"""
-        # Нормализуем имя навыка для сравнения
-        skill_name_lower = skill_name.lower()
+        """Получить уровень навыка (регистронезависимо и без учета префикса skill_)"""
+        # Нормализуем имя требуемого навыка
+        skill_name_lower = skill_name.lower().replace("skill_", "")
         for name, skill_level in self.skills.items():
-            if name.lower() == skill_name_lower:
+            # Нормализуем имя навыка у сотрудника
+            if name.lower().replace("skill_", "") == skill_name_lower:
                 return skill_level.level
         return 0
 
@@ -69,18 +70,17 @@ class DigitalEmployee(Employee):
         return any(cap in task_keywords for cap in capabilities) or "all" in capabilities
 
     def has_skill(self, skill_name: str, required_level: int = 1) -> bool:
-        """Проверить наличие цифрового навыка (регистронезависимо)"""
-        skill_name_lower = skill_name.lower()
+        """Проверить наличие цифрового навыка (регистронезависимо и без учета префикса skill_)"""
+        skill_name_lower = skill_name.lower().replace("skill_", "")
         for name in self.skills.keys():
-            if name.lower() == skill_name_lower:
+            if name.lower().replace("skill_", "") == skill_name_lower:
                 return True
         return "all" in self.config.get("capabilities", [])
     
     def get_skill_level(self, skill_name: str) -> int:
-        """Получить уровень навыка (регистронезависимо)"""
-        # Нормализуем имя навыка для сравнения
-        skill_name_lower = skill_name.lower()
+        """Получить уровень навыка (регистронезависимо и без учета префикса skill_)"""
+        skill_name_lower = skill_name.lower().replace("skill_", "")
         for name, skill_level in self.skills.items():
-            if name.lower() == skill_name_lower:
+            if name.lower().replace("skill_", "") == skill_name_lower:
                 return skill_level.level
         return 0
