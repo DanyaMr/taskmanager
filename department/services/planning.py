@@ -387,19 +387,20 @@ class Planning:
         time_matrix = np.zeros((n_tasks, n_employees))
         feasibility_matrix = np.zeros((n_tasks, n_employees), dtype=bool)
         
-        for i, task in enumerate(sorted_tasks):
-            print(f"  Task {i}: {task.title}, required_skills: {task.required_skills}")
-            for j, emp in enumerate(self.employees):
-                # Приоритет 1: LLM оценка
-                # Приоритет 2: Fallback - простое соответствие
-                can_perform, confidence = self._llm_can_perform(emp, task)
+        # Используем batch метод для оценки всех задач каждым сотрудником (один LLM вызов на сотрудника)
+        for j, emp in enumerate(self.employees):
+            print(f"  Evaluating employee {j}: {emp.name} ({emp.type})")
+            # Оцениваем все задачи для этого сотрудника одним вызовом
+            results = self._llm_can_perform_batch(emp, sorted_tasks)
+            
+            for i, task in enumerate(sorted_tasks):
+                can_perform, confidence = results.get(task.id, (False, 0.5))
                 feasibility_matrix[i][j] = can_perform
                 
                 if can_perform:
                     forecast = self.forecasting_service.estimate_task(task, emp.type)
-                    # Применяем confidence к effort (уверенность снижает время)
                     time_matrix[i][j] = forecast.predicted_effort * (2 - confidence)
-                    print(f"    Emp {j} ({emp.name}, {emp.type}): can_perform={can_perform}, confidence={confidence:.2f}, effort={time_matrix[i][j]:.1f}")
+                    print(f"    Task {i} ({task.title}): can_perform={can_perform}, confidence={confidence:.2f}, effort={time_matrix[i][j]:.1f}")
                 else:
                     time_matrix[i][j] = 1e6  # Большое число для невозможных
         
@@ -483,93 +484,93 @@ class Planning:
             "surplus_deficit": round(total_capacity - required_effort, 1)
         }
     
-    def _llm_can_perform(self, employee: Employee, task: Task) -> Tuple[bool, float]:
+    def _llm_can_perform_batch(self, employee: Employee, tasks: List[Task]) -> Dict[str, Tuple[bool, float]]:
         """
-        LLM оценивает возможность выполнения задачи сотрудником.
-        LLM САМА проверяет соответствие навыков, а не полагается на прямое совпадение.
-        
-        Приоритет 1: LLM оценка (семантическое понимание навыков)
-        Приоритет 2: Простое соответствие навыков (fallback если LLM недоступен)
+        LLM оценивает возможность выполнения ВСЕХ задач одним сотрудником за ОДИН вызов.
+        Это сокращает количество вызовов LLM с N*M до N (где N - количество сотрудников).
         
         Args:
             employee: Сотрудник
-            task: Задача
+            tasks: Список задач
             
         Returns:
-            (can_perform: bool, confidence: float)
+            Dict[task_id -> (can_perform: bool, confidence: float)]
         """
-        # Приоритет 1: Пробуем LLM оценку с семантическим пониманием
-        if self.llm_service:
-            # Формируем список навыков без префиксов для лучшего понимания
-            emp_skills = list(employee.skills.keys())
-            # Убираем префикс "skill_" если есть
-            emp_skills_clean = [s.replace("skill_", "") for s in emp_skills]
-            
-            # Требуемые навыки тоже очищаем
+        results = {}
+        
+        if not self.llm_service or not tasks:
+            # Fallback для каждой задачи
+            for task in tasks:
+                results[task.id] = (employee.can_perform_task(task), 0.5)
+            return results
+        
+        # Формируем список навыков без префиксов
+        emp_skills = list(employee.skills.keys())
+        emp_skills_clean = [s.replace("skill_", "") for s in emp_skills]
+        
+        # Формируем список задач для промпта
+        tasks_str = ""
+        for i, task in enumerate(tasks):
             required_skills = {k.replace("skill_", ""): v for k, v in task.required_skills.items()}
-            
-            prompt = f"""
+            tasks_str += f"{i+1}. \"{task.title}\" - требуется: {list(required_skills.keys()) if required_skills else 'none'}\n"
+        
+        prompt = f"""
 Сотрудник: {employee.name}
-Тип: {employee.type} (человек или цифровой агент)
-Навыки сотрудника: {emp_skills_clean}
+Тип: {employee.type}
+Навыки: {emp_skills_clean}
 Capabilities: {employee.config.get('capabilities', [])}
 
-Задача: {task.title}
-Описание: {task.description}
-Требуемые навыки: {required_skills}
+Задачи для оценки ({len(tasks)} шт):
+{tasks_str}
 
 **ИНСТРУКЦИЯ:**
-1. Внимательно сравни каждый требуемый навык с навыками сотрудника
-2. Учитывай семантическую близость навыков:
-   - "python" ≈ "backend" ≈ "development" ≈ "programming"
-   - "devops" ≈ "infrastructure" ≈ "deployment" ≈ "ci/cd"
-   - "ml" ≈ "ai" ≈ "machine learning" ≈ "data science"
-   - "frontend" ≈ "react" ≈ "vue" ≈ "ui"
-   - "nlp" ≈ "text" ≈ "language" ≈ "linguistics"
-3. Цифровые сотрудники (digital) могут выполнять автоматизированные задачи
-4. Если требуемый навык отсутствует — задача не может быть выполнена
+Для каждой задачи определи может ли сотрудник её выполнить based on skills.
+Учитывай семантическую близость: python≈backend, devops≈infrastructure, ml≈ai, frontend≈react
 
-**Вопрос:** Может ли этот сотрудник выполнить эту задачу?
-Объясни логику проверки каждого навыка и верни ответ в формате JSON:
+Верни JSON в формате:
 {{
-    "can_perform": true,
-    "confidence": 0.8,
-    "reasoning": "У сотрудника есть навык devops который требуется (уровень 3). Также сотрудник имеет backend который семантически близок к python..."
+    "{tasks[0].id}": {{"can_perform": true, "confidence": 0.8}},
+    "{tasks[1].id}": {{"can_perform": false, "confidence": 0.5}}
 }}
-
-Только JSON, без дополнительного текста.
 """
-            
-            messages = [
-                {"role": "system", "content": "Ты эксперт по оценке компетенций сотрудников. Твоя задача — внимательно проверить соответствие навыков сотрудника требуемым навыкам. Используй семантическое понимание навыков."},
-                {"role": "user", "content": prompt}
-            ]
-            
-            try:
-                response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=512)
-                
-                if response:
-                    # Пытаемся найти JSON в ответе
-                    start_idx = response.find("{")
-                    end_idx = response.rfind("}") + 1
-                    if start_idx >= 0 and end_idx > start_idx:
-                        import json
-                        data = json.loads(response[start_idx:end_idx])
-                        
-                        can_perform = data.get("can_perform", False)
-                        confidence = float(data.get("confidence", 0.5))
-                        
-                        print(f"  LLM response: can_perform={can_perform}, confidence={confidence}")
-                        print(f"  Reasoning: {data.get('reasoning', 'N/A')}")
-                        
-                        if can_perform:
-                            return can_perform, confidence
-            except Exception as e:
-                print(f"LLM evaluation error: {e}")
         
-        # Приоритет 2: Fallback - простое соответствие навыков
-        print("  Using fallback: can_perform_task()")
-        return employee.can_perform_task(task), 0.5
+        messages = [
+            {"role": "system", "content": "Ты эксперт по оценке компетенций. Верни ТОЛЬКО JSON с оценкой всех задач."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        try:
+            response = self.llm_service._make_chat_request(messages, temperature=0.1, max_tokens=1024)
+            
+            if response:
+                start_idx = response.find("{")
+                end_idx = response.rfind("}") + 1
+                if start_idx >= 0 and end_idx > start_idx:
+                    import json
+                    data = json.loads(response[start_idx:end_idx])
+                    
+                    for task in tasks:
+                        if task.id in data:
+                            task_result = data[task.id]
+                            can_perform = task_result.get("can_perform", False)
+                            confidence = float(task_result.get("confidence", 0.5))
+                            results[task.id] = (can_perform, confidence)
+                        else:
+                            # Fallback для задачи без ответа
+                            results[task.id] = (employee.can_perform_task(task), 0.5)
+                    return results
+        except Exception as e:
+            print(f"LLM batch evaluation error: {e}")
+        
+        # Fallback для всех задач
+        for task in tasks:
+            results[task.id] = (employee.can_perform_task(task), 0.5)
+        return results
+
+    def _llm_can_perform(self, employee: Employee, task: Task) -> Tuple[bool, float]:
+        """Обёртка для совместимости - вызывает batch метод для одной задачи"""
+        results = self._llm_can_perform_batch(employee, [task])
+        return results.get(task.id, (employee.can_perform_task(task), 0.5))
 
     def assign_task_to_employee(
         self,
